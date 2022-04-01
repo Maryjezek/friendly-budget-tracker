@@ -1,12 +1,12 @@
 let db;
-const request = indexedDB.open('budget', 1);
+const request = indexedDB.open("budget", 1);
 
-request.onupgradeneeded = function(event) {
+request.onupgradeneeded = function (event) {
   const db = event.target.result;
-  db.createObjectStore('budget', { autoIncrement: true });
+  db.createObjectStore("pending", { autoIncrement: true });
 };
 
-request.onsuccess = function(event) {
+request.onsuccess = function (event) {
   // when db is successfully created with its object store (from onupgradedneeded event above), save reference to db in global variable
   db = event.target.result;
 
@@ -16,15 +16,15 @@ request.onsuccess = function(event) {
   }
 };
 
-request.onerror = function(event) {
+request.onerror = function (event) {
   // log error here
   console.log(event.target.errorCode);
 };
 
 function saveRecord(record) {
-  const transaction = db.transaction(['budget'], 'readwrite');
+  const transaction = db.transaction(["pending"], "readwrite");
 
-  const budgetObjectStore = transaction.objectStore('budget');
+  const budgetObjectStore = transaction.objectStore("pending");
 
   // add record to your store with add method.
   budgetObjectStore.add(record);
@@ -32,37 +32,37 @@ function saveRecord(record) {
 
 function uploadbudget() {
   // open a transaction on your pending db
-  const transaction = db.transaction(['budget'], 'readwrite');
+  const transaction = db.transaction(["pending"], "readwrite");
 
   // access your pending object store
-  const budgetObjectStore = transaction.objectStore('budget');
+  const budgetObjectStore = transaction.objectStore("pending");
 
   // get all records from store and set to a variable
   const getAll = budgetObjectStore.getAll();
 
-  getAll.onsuccess = function() {
+  getAll.onsuccess = function () {
     // if there was data in indexedDb's store, let's send it to the api server
     if (getAll.result.length > 0) {
-      fetch('/api/transaction', {
-        method: 'POST',
+      fetch("/api/transaction/bulk", {
+        method: "POST",
         body: JSON.stringify(getAll.result),
         headers: {
-          Accept: 'application/json, text/plain, */*',
-          'Content-Type': 'application/json'
-        }
+          Accept: "application/json, text/plain, */*",
+          "Content-Type": "application/json",
+        },
       })
-        .then(response => response.json())
-        .then(serverResponse => {
+        .then((response) => response.json())
+        .then((serverResponse) => {
           if (serverResponse.message) {
             throw new Error(serverResponse);
           }
 
-          const transaction = db.transaction(['budget'], 'readwrite');
-          const budgetObjectStore = transaction.objectStore('budget');
+          const transaction = db.transaction(["pending"], "readwrite");
+          const budgetObjectStore = transaction.objectStore("pending");
           // clear all items in your store
           budgetObjectStore.clear();
         })
-        .catch(err => {
+        .catch((err) => {
           // set reference to redirect back here
           console.log(err);
         });
@@ -71,4 +71,4 @@ function uploadbudget() {
 }
 
 // listen for app coming back online
-window.addEventListener('online', uploadbudget);
+window.addEventListener("online", uploadbudget);
